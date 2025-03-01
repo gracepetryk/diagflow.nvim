@@ -85,7 +85,7 @@ function M.setup(user_config)
         error('diagflow: invalid value for "scope" config. expected "line" or "cursor", got ' .. config.scope)
         return
     end
-    if type(config.placement) ~= 'string' or (config.placement ~= 'top' and config.placement ~= 'inline') then
+    if type(config.placement) ~= 'string' or (config.placement ~= 'top' and config.placement ~= 'inline' and config.placement ~= 'bottom') then
         error('diagflow: invalid value for "placement" config. expected "top" or "inline", got ' .. config.placement)
         return
     end

@@ -169,9 +169,9 @@ function M.init(config)
             [vim.diagnostic.severity.HINT] = config.severity_colors.hint,
         }
 
-        local line_offset = 0
-        local win_width = win_info.width - win_info.textoff - config.padding_right
-        -- Render current_pos_diags
+
+        local total_lines = 0
+        local rendered_messages = {}
         for _, diag in ipairs(current_pos_diags) do
             local diag_message = config.format(diag)
 
@@ -180,6 +180,35 @@ function M.init(config)
             local message_lines = wrap_text(sign .. diag_message, config.max_width)
             message_lines = create_boxed_text(message_lines, config.show_borders)
 
+            table.insert(rendered_messages, {diag, hl_group, message_lines})
+
+            total_lines = total_lines + #message_lines + config.gap_size - 1
+        end
+
+        -- fist diag doesn't get a gap
+        total_lines = total_lines - config.gap_size + config.padding_top
+
+        local line_offset = 0
+        local win_width = win_info.width - win_info.textoff - config.padding_right
+
+        local is_right = config.text_align == 'right'
+        local is_top = config.placement == 'top'
+        local is_bottom = config.placement == 'bottom'
+        local is_inline = config.placement == 'inline'
+
+        local anchor = nil
+        if is_top then
+            anchor = win_info.topline
+        elseif is_bottom then
+            anchor = win_info.botline - total_lines - 1
+        elseif is_inline then
+            anchor = line
+        end
+
+        -- Render current_pos_diags
+        for _, message in ipairs(rendered_messages) do
+            local diag, hl_group, message_lines = unpack(message)
+
             local max_width = 0
             if config.text_align == 'left' then
                 for _, message in ipairs(message_lines) do
@@ -187,14 +216,12 @@ function M.init(config)
                 end
             end
 
-            local is_right = config.text_align == 'right'
-            local is_top = config.placement == 'top'
-
             local lines_added = 0
             for idx, message in ipairs(message_lines) do
                 if lines_added >= config.max_height then
                     break
                 end
+
                 lines_added = lines_added + 1
                 if config.placement == 'inline' then
                     -- output message lines starting from the last one
@@ -207,9 +234,9 @@ function M.init(config)
                         virt_text_hide = true,
                         strict = false
                     })
-                elseif is_top and is_right and config.padding_right == 0 then
+                elseif (not is_inline) and is_right and config.padding_right == 0 then
                     -- fixes the issue of neotree and nvim-tree weird not on screen when opened
-                    vim.api.nvim_buf_set_extmark(bufnr, ns, win_info.topline + line_offset + config.padding_top, 0, {
+                    vim.api.nvim_buf_set_extmark(bufnr, ns, anchor + line_offset + config.padding_top, 0, {
                         virt_text_pos = 'right_align',
                         virt_text = { { message, hl_group } },
                         virt_text_hide = true,
@@ -217,7 +244,7 @@ function M.init(config)
                     })
                 else
                     local align = config.text_align == 'left' and max_width or #message
-                    vim.api.nvim_buf_set_extmark(bufnr, ns, win_info.topline + line_offset + config.padding_top, 0, {
+                    vim.api.nvim_buf_set_extmark(bufnr, ns, anchor + line_offset + config.padding_top, 0, {
                         virt_text_win_col = win_width - align,
                         virt_text = { { message, hl_group } },
                         virt_text_hide = true,
