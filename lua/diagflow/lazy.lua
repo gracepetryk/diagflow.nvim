@@ -200,7 +200,7 @@ function M.init(config)
         if is_top then
             anchor = win_info.topline
         elseif is_bottom then
-            anchor = win_info.botline - total_lines - 1
+            anchor = math.max(win_info.topline, win_info.botline - total_lines - 1)
         elseif is_inline then
             anchor = line
         end
