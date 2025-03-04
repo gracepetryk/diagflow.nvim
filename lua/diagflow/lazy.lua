@@ -32,10 +32,16 @@ local function len(T)
     return count
 end
 
-local function wrap_text(text, max_width)
+local function wrap_text(text, max_width, max_height)
     local lines = {}
-
+    local line_count = 0
     for line in text:gmatch("([^\n]*)\n?") do
+        if line_count >= max_height then
+            break
+        end
+
+        line_count = line_count + 1
+
         local wrapped_line = ""
         for word in line:gmatch("%S+") do
             if strlen(wrapped_line) + strlen(word) + 1 > max_width then
@@ -179,7 +185,7 @@ function M.init(config)
 
             local hl_group = severity[diag.severity]
             local sign = config.show_sign and signs[vim.diagnostic.severity[diag.severity]] .. " " or ""
-            local message_lines = wrap_text(sign .. diag_message, config.max_width)
+            local message_lines = wrap_text(sign .. diag_message, config.max_width, config.max_height)
             message_lines = create_boxed_text(message_lines, config.show_borders)
 
             table.insert(rendered_messages, {diag, hl_group, message_lines})
@@ -220,10 +226,6 @@ function M.init(config)
 
             local lines_added = 0
             for idx, message in ipairs(message_lines) do
-                if lines_added >= config.max_height then
-                    break
-                end
-
                 lines_added = lines_added + 1
                 if config.placement == 'inline' then
                     -- output message lines starting from the last one
